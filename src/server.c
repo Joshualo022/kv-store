@@ -7,6 +7,19 @@
 #include "log.h"
 #pragma comment(lib, "Ws2_32.lib")
 
+void send_response(SOCKET client_socket, char *message)
+{
+    int length = strlen(message);
+    unsigned char length_bytes[4];
+    length_bytes[0] = (length >> 24) & 0xFF;
+    length_bytes[1] = (length >> 16) & 0xFF;
+    length_bytes[2] = (length >> 8) & 0xFF;
+    length_bytes[3] = length & 0xFF;
+
+    send(client_socket, (char *)length_bytes, 4, 0);
+    send(client_socket, message, length, 0);
+}
+
 void start_server(int port)
 {
     // Initialize Winsock
@@ -44,15 +57,25 @@ void start_server(int port)
     while (1)
     {
 
-        char buffer[1024];
-        int bytes_received = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
+        unsigned char length_bytes[4];
+        int received = recv(client_socket, (char *)length_bytes, 4, 0);
+        if (received <= 0)
+            break; // client disconnected
+        int message_length = (length_bytes[0] << 24) | (length_bytes[1] << 16) | (length_bytes[2] << 8) | length_bytes[3];
 
-        if (bytes_received <= 0)
+        char buffer[1024];
+        int total_read = 0;
+        while (total_read < message_length)
         {
-            break;
+            int n = recv(client_socket, buffer + total_read, message_length - total_read, 0);
+            if (n <= 0)
+            {
+                break;
+            }
+            total_read += n;
         }
 
-        buffer[bytes_received] = '\0';
+        buffer[message_length] = '\0';
         printf("Raw buffer: [%s]\n", buffer);
 
         Command *cmd = parse_command(buffer);
@@ -62,7 +85,7 @@ void start_server(int port)
         {
             ht_insert(ht, cmd->key, cmd->value);
             log_command("SET", cmd->key, cmd->value);
-            send(client_socket, "SET operation OK\n", strlen("SET operation OK\n"), 0);
+            send_response(client_socket, "SET operation OK");
         }
 
         else if (strcmp(cmd->command, "GET") == 0)
@@ -70,21 +93,18 @@ void start_server(int port)
             char *value = ht_get(ht, cmd->key);
             if (value)
             {
-                char response[1024];
-                snprintf(response, sizeof(response), "%s\n", value);
-
-                send(client_socket, response, strlen(response), 0);
+                send_response(client_socket, value);
             }
             else
             {
-                send(client_socket, "Not found\n", 10, 0);
+                send_response(client_socket, "Not found");
             }
         }
         else if (strcmp(cmd->command, "DEL") == 0)
         {
             ht_delete(ht, cmd->key);
             log_command("DEL", cmd->key, cmd->value);
-            send(client_socket, "DEL operation OK\n", strlen("DEL operation OK\n"), 0);
+            send_response(client_socket, "DEL operation OK");
         }
 
         free_command(cmd);

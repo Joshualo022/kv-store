@@ -46,31 +46,11 @@ int ht_hash(char *key, int capacity)
     }
     return hash % capacity; // mod by capacity to get index
 }
-
-void ht_insert(HashTable *ht, char *key, char *value)
-{
-    int index = ht_hash(key, ht->capacity);
-    while (ht->entries[index].key != NULL)
-    {
-        if (index == ht->capacity - 1)
-        {
-            index = 0;
-        }
-        else
-        {
-            index++;
-        }
-    }
-    ht->entries[index].key = strdup(key);
-    ht->entries[index].value = strdup(value);
-    ht->count++;
-}
-
 int get_index_from_key(HashTable *ht, char *key)
 {
     int index = ht_hash(key, ht->capacity);
     int initial = index;
-    while (strcmp(ht->entries[index].key, key) != 0)
+    while (ht->entries[index].key != NULL && strcmp(ht->entries[index].key, key) != 0)
     {
         if (index < ht->capacity - 1)
         {
@@ -90,6 +70,41 @@ int get_index_from_key(HashTable *ht, char *key)
         return -1;
     }
     return index;
+}
+
+void ht_insert(HashTable *ht, char *key, char *value)
+{
+    int index = get_index_from_key(ht, key);
+
+    if (index != -1)
+    {
+        // key already exists — update value only
+        free(ht->entries[index].value);
+        ht->entries[index].value = strdup(value);
+        return;
+    }
+
+    // key doesn't exist — find empty/tombstone slot
+    index = ht_hash(key, ht->capacity);
+    while (ht->entries[index].key != NULL && strcmp(ht->entries[index].key, "") != 0)
+    {
+        if (index == ht->capacity - 1)
+        {
+            index = 0;
+        }
+        else
+        {
+            index++;
+        }
+    }
+
+    if (ht->entries[index].key != NULL)
+    {
+        free(ht->entries[index].key);
+    }
+    ht->entries[index].key = strdup(key);
+    ht->entries[index].value = strdup(value);
+    ht->count++;
 }
 
 char *ht_get(HashTable *ht, char *key)
