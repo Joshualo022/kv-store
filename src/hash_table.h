@@ -1,3 +1,6 @@
+#ifndef HASH_TABLE_H
+#define HASH_TABLE_H
+
 typedef struct
 {
     char *key;
@@ -16,3 +19,5 @@ void ht_insert(HashTable *ht, char *key, char *value);
 char *ht_get(HashTable *ht, char *key);
 void ht_delete(HashTable *ht, char *key);
 void ht_free(HashTable *ht);
+
+#endif

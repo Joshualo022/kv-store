@@ -25,6 +25,14 @@ HashTable *ht_create(int capacity)
 
 void ht_free(HashTable *ht)
 {
+    for (int i = 0; i < ht->capacity; i++)
+    {
+        if (ht->entries[i].key != NULL)
+        {
+            free(ht->entries[i].key);
+            free(ht->entries[i].value);
+        }
+    }
     free(ht->entries);
     free(ht);
 }
@@ -53,8 +61,8 @@ void ht_insert(HashTable *ht, char *key, char *value)
             index++;
         }
     }
-    ht->entries[index].key = key;
-    ht->entries[index].value = value;
+    ht->entries[index].key = strdup(key);
+    ht->entries[index].value = strdup(value);
     ht->count++;
 }
 
@@ -102,7 +110,10 @@ void ht_delete(HashTable *ht, char *key)
     int index = get_index_from_key(ht, key);
     if (index != -1)
     {
-        ht->entries[index].key = "";
+
+        free(ht->entries[index].key);
+        free(ht->entries[index].value);
+        ht->entries[index].key = strdup("");
         ht->entries[index].value = NULL;
         ht->count--;
     }
