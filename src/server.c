@@ -5,7 +5,6 @@
 #include "hash_table.h"
 #include <string.h>
 #include "log.h"
-#pragma comment(lib, "Ws2_32.lib")
 
 void send_response(SOCKET client_socket, char *message)
 {
