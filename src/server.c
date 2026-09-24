@@ -94,7 +94,7 @@ void start_server(int port)
             else
             {
                 ht_insert(ht, cmd->key, cmd->value);
-                // log_command("SET", cmd->key, cmd->value);
+                log_command("SET", cmd->key, cmd->value);
                 send_response(client_socket, "SET operation OK");
             }
         }
@@ -127,7 +127,7 @@ void start_server(int port)
             else
             {
                 ht_delete(ht, cmd->key);
-                // log_command("DEL", cmd->key, cmd->value);
+                log_command("DEL", cmd->key, cmd->value);
                 send_response(client_socket, "DEL operation OK");
             }
         }
