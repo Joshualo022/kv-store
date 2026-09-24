@@ -62,8 +62,12 @@ void start_server(int port)
         if (received <= 0)
             break; // client disconnected
         int message_length = (length_bytes[0] << 24) | (length_bytes[1] << 16) | (length_bytes[2] << 8) | length_bytes[3];
-
         char buffer[1024];
+        if (message_length <= 0 || message_length >= sizeof(buffer))
+        {
+            break;
+        }
+
         int total_read = 0;
         while (total_read < message_length)
         {
@@ -83,28 +87,53 @@ void start_server(int port)
 
         if (strcmp(cmd->command, "SET") == 0)
         {
-            ht_insert(ht, cmd->key, cmd->value);
-            log_command("SET", cmd->key, cmd->value);
-            send_response(client_socket, "SET operation OK");
+            if (cmd->value == NULL || cmd->key == NULL)
+            {
+                send_response(client_socket, "ERROR: SET requires a key and value");
+            }
+            else
+            {
+                ht_insert(ht, cmd->key, cmd->value);
+                // log_command("SET", cmd->key, cmd->value);
+                send_response(client_socket, "SET operation OK");
+            }
         }
 
         else if (strcmp(cmd->command, "GET") == 0)
         {
-            char *value = ht_get(ht, cmd->key);
-            if (value)
+            if (cmd->key == NULL)
             {
-                send_response(client_socket, value);
+                send_response(client_socket, "ERROR: GET requires key");
             }
             else
             {
-                send_response(client_socket, "Not found");
+                char *value = ht_get(ht, cmd->key);
+                if (value)
+                {
+                    send_response(client_socket, value);
+                }
+                else
+                {
+                    send_response(client_socket, "Not found");
+                }
             }
         }
         else if (strcmp(cmd->command, "DEL") == 0)
         {
-            ht_delete(ht, cmd->key);
-            log_command("DEL", cmd->key, cmd->value);
-            send_response(client_socket, "DEL operation OK");
+            if (cmd->key == NULL)
+            {
+                send_response(client_socket, "ERROR: DEL requires key");
+            }
+            else
+            {
+                ht_delete(ht, cmd->key);
+                // log_command("DEL", cmd->key, cmd->value);
+                send_response(client_socket, "DEL operation OK");
+            }
+        }
+        else
+        {
+            send_response(client_socket, "ERROR: Unknown Command");
         }
 
         free_command(cmd);

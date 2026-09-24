@@ -1,5 +1,6 @@
 import socket
 import struct
+import time
 
 s = socket.socket()
 s.connect(("localhost", 6379))
@@ -14,18 +15,18 @@ def recv_response(sock):
     length = struct.unpack(">I", length_bytes)[0]
     return sock.recv(length).decode()
 
-send_command(s, "SET name Josh")
-print("SET:", recv_response(s))
-send_command(s, "SET name Josh")
-print("SET:", recv_response(s))
+NUM_OPS = 10000
 
-send_command(s, "GET name")
-print("GET:", recv_response(s))
+start = time.time()
 
-send_command(s, "DEL name")
-print("DEL:", recv_response(s))
+for i in range(NUM_OPS):
+    send_command(s, f"SET key{i} value{i}")
+    recv_response(s)
 
-send_command(s, "GET name")
-print("GET after DEL:", recv_response(s))
+end = time.time()
+
+elapsed = end - start
+print(f"{NUM_OPS} SET ops in {elapsed:.2f}s")
+print(f"{NUM_OPS / elapsed:.0f} ops/sec")
 
 s.close()

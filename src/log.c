@@ -3,22 +3,27 @@
 #include <string.h>
 #include "protocol.h"
 
+static FILE *log_file = NULL;
+
 void log_command(char *command, char *key, char *value)
 {
-    FILE *file = fopen("kvstore.log", "a");
-    if (file == NULL)
-        return;
+    if (log_file == NULL)
+    {
+        log_file = fopen("kvstore.log", "a");
+        if (log_file == NULL)
+            return;
+    }
 
     if (value)
     {
-        fprintf(file, "%s %s %s\n", command, key, value);
+        fprintf(log_file, "%s %s %s\n", command, key, value);
     }
     else
     {
-        fprintf(file, "%s %s\n", command, key);
+        fprintf(log_file, "%s %s\n", command, key);
     }
 
-    fclose(file);
+    fflush(log_file); // force write to disk without closing
 }
 void replay_log(HashTable *ht)
 {
