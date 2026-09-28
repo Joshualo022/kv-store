@@ -2,4 +2,5 @@ src/kvstore.log
 src/kv_server.exe
 kvstore.log
 kv_server.exe
-
+README.md
+src/OLDconnect.py
