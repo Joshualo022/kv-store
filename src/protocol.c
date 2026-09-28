@@ -11,8 +11,8 @@ Command *parse_command(char *input)
     char *value = strtok(NULL, " ");
 
     Command *new_command = malloc(sizeof(Command));
-    new_command->command = strdup(header);
-    new_command->key = strdup(key);
+    new_command->command = header ? strdup(header) : NULL;
+    new_command->key = key ? strdup(key) : NULL;
     new_command->value = value ? strdup(value) : NULL;
 
     free(copy);

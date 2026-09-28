@@ -1,32 +1,39 @@
-import socket
-import struct
-import time
-
-s = socket.socket()
-s.connect(("localhost", 6379))
+import socket, struct, threading
 
 def send_command(sock, message):
-    msg_bytes = message.encode()
-    length = len(msg_bytes)
-    sock.send(struct.pack(">I", length) + msg_bytes)
+    b = message.encode()
+    sock.sendall(struct.pack(">I", len(b)) + b)
+
+def recv_exact(sock, n):
+    data = b""
+    while len(data) < n:
+        chunk = sock.recv(n - len(data))
+        if not chunk:
+            raise ConnectionError("server closed")
+        data += chunk
+    return data
 
 def recv_response(sock):
-    length_bytes = sock.recv(4)
-    length = struct.unpack(">I", length_bytes)[0]
-    return sock.recv(length).decode()
+    length = struct.unpack(">I", recv_exact(sock, 4))[0]
+    return recv_exact(sock, length).decode()
 
-NUM_OPS = 10000
+def worker(client_id, num_ops, errors):
+    try:
+        s = socket.socket()
+        s.connect(("localhost", 6379))
+        for i in range(num_ops):
+            send_command(s, f"SET c{client_id}k{i} v{client_id}_{i}")
+            recv_response(s)
+        for i in range(num_ops):
+            send_command(s, f"GET c{client_id}k{i}")
+            if recv_response(s) != f"v{client_id}_{i}":
+                errors.append((client_id, i))
+        s.close()
+    except Exception as e:
+        errors.append((client_id, str(e)))
 
-start = time.time()
-
-for i in range(NUM_OPS):
-    send_command(s, f"SET key{i} value{i}")
-    recv_response(s)
-
-end = time.time()
-
-elapsed = end - start
-print(f"{NUM_OPS} SET ops in {elapsed:.2f}s")
-print(f"{NUM_OPS / elapsed:.0f} ops/sec")
-
-s.close()
+errors = []
+threads = [threading.Thread(target=worker, args=(c, 500, errors)) for c in range(5)]
+for t in threads: t.start()
+for t in threads: t.join()
+print("errors:", len(errors), errors[:5])
