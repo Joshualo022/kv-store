@@ -1,4 +1,4 @@
-# kv-store
+# lightstore-c
 
 A persistent key-value database written from scratch in C, with a TCP server, length-prefixed framing, append-only log, and multi-client support.
 
